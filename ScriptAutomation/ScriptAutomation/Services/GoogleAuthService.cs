@@ -15,7 +15,9 @@ public class GoogleAuthService
         ClassroomService.Scope.ClassroomCourseworkStudents,
         ClassroomService.Scope.ClassroomCourseworkMe,
         ClassroomService.Scope.ClassroomTopics,
-        ClassroomService.Scope.ClassroomAnnouncements
+        ClassroomService.Scope.ClassroomAnnouncements,
+        ClassroomService.Scope.ClassroomCourseworkmaterials,
+        ClassroomService.Scope.ClassroomRostersReadonly
     };
 
     private const string ApplicationName = "Classroom Automation";

@@ -74,25 +74,28 @@ public static class AppConfig
     public static readonly List<ClassConfig> CourseMapping = new()
     {
         // ===== TOÁN CHUYÊN =====
-        new() { ClassName = "Chuyên 6",   CourseId = "" },  // TODO: Điền Course ID
-        new() { ClassName = "Chuyên 7",   CourseId = "" },
-        new() { ClassName = "Chuyên 8",   CourseId = "" },
-        new() { ClassName = "Chuyên 9",   CourseId = "" },
+        new() { ClassName = "Chuyên 6",   CourseId = "861053741216" },  // TODO: Điền Course ID
+        new() { ClassName = "Chuyên 7",   CourseId = "861055197930" },
+        new() { ClassName = "Chuyên 8",   CourseId = "861055747586" },
+        new() { ClassName = "Chuyên 9",   CourseId = "860844700611" },
 
         // ===== TOÁN NÂNG CAO =====
-        new() { ClassName = "Nâng cao 6", CourseId = "" },
-        new() { ClassName = "Nâng cao 7", CourseId = "" },
-        new() { ClassName = "Nâng cao 8", CourseId = "" },
-        new() { ClassName = "Nâng cao 9", CourseId = "" },
+        new() { ClassName = "Nâng cao 6", CourseId = "861045834968" },
+        new() { ClassName = "Nâng cao 7", CourseId = "861040346227" },
+        new() { ClassName = "Nâng cao 8", CourseId = "849550384660" },
+        new() { ClassName = "Nâng cao 9", CourseId = "861053506598" },
 
         // ===== LỚP 5 =====
-        new() { ClassName = "Lớp 5",      CourseId = "" },
+        new() { ClassName = "Lớp 5",      CourseId = "849550177713" },
 
         // ===== ANH VĂN =====
-        new() { ClassName = "Anh 6",      CourseId = "" },
-        new() { ClassName = "Anh 7",      CourseId = "" },
-        new() { ClassName = "Anh 8",      CourseId = "" },
-        new() { ClassName = "Anh 9",      CourseId = "" },
+        new() { ClassName = "Anh 6",      CourseId = "861053753455" },
+        new() { ClassName = "Anh 7",      CourseId = "861056509463" },
+        new() { ClassName = "Anh 8",      CourseId = "849550429646" },
+        new() { ClassName = "Anh 9",      CourseId = "861053194327" },
+
+        // ===== LỚP TEST =====
+        new() { ClassName = "test",       CourseId = "861730952163" }, 
     };
 
     /// <summary>
