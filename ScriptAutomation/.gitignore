@@ -1,0 +1,32 @@
+## Visual Studio
+.vs/
+[Bb]in/
+[Oo]bj/
+*.user
+*.userosscache
+*.sln.doccache
+
+## Visual Studio Code
+.vscode/
+
+## .NET
+*.swp
+*.bak
+*.tmp
+*.log
+.DS_Store
+
+## Google API Secrets & Tokens
+**/credentials.json**
+**/token/**
+**/token.json**
+client_secret.json
+
+## User-specific files
+*.rsuser
+*.suo
+*.user
+*.userosscache
+*.sln.doccache
+*.sublime-project
+*.sublime-workspace
