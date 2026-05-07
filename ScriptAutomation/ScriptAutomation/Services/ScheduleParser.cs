@@ -35,14 +35,14 @@ public class ScheduleParser
         var lines = File.ReadAllLines(filePath);
         var sessions = new List<TeachingSession>();
 
-        // Parse Tuần 1
-        sessions.AddRange(ParseWeek1(lines));
+        // Parse Tuần 0
+        sessions.AddRange(ParseWeek0(lines));
 
-        // Parse Tuần 2-9
-        sessions.AddRange(ParseWeek2To9(lines));
+        // Parse Tuần 1-8
+        sessions.AddRange(ParseWeek1To8(lines));
 
-        // Parse Tuần 10
-        sessions.AddRange(ParseWeek10(lines));
+        // Parse Tuần 9
+        sessions.AddRange(ParseWeek9(lines));
 
         // Gán số buổi (SessionNumber) cho từng lớp trong từng tuần
         AssignSessionNumbers(sessions);
@@ -71,9 +71,9 @@ public class ScheduleParser
         return sessions.Select(s => s.ClassName).Distinct().ToList();
     }
 
-    #region Parse Tuần 1
+    #region Parse Tuần 0
 
-    private List<TeachingSession> ParseWeek1(string[] lines)
+    private List<TeachingSession> ParseWeek0(string[] lines)
     {
         var sessions = new List<TeachingSession>();
         bool inWeek1Table = false;
@@ -82,7 +82,7 @@ public class ScheduleParser
         {
             var line = lines[i].Trim();
 
-            if (line == "## TUẦN 1")
+            if (line == "## TUẦN 0")
             {
                 inWeek1Table = true;
                 continue;
@@ -91,7 +91,7 @@ public class ScheduleParser
             if (inWeek1Table && line.StartsWith("## "))
                 break;
 
-            if (!inWeek1Table || !line.StartsWith("|") || line.Contains("---") || line.Contains("Lớp"))
+            if (!inWeek1Table || !line.StartsWith("|") || line.Contains("---"))
                 continue;
 
             var cols = line.Split('|', StringSplitOptions.None)
@@ -99,7 +99,7 @@ public class ScheduleParser
                 .Where(c => !string.IsNullOrEmpty(c))
                 .ToArray();
 
-            if (cols.Length < 4) continue;
+            if (cols.Length < 4 || cols[0] == "Lớp") continue;
 
             string className = cols[0].Trim();
             string dateStr = cols[1].Trim();
@@ -113,7 +113,7 @@ public class ScheduleParser
             sessions.Add(new TeachingSession
             {
                 ClassName = className,
-                WeekNumber = 1,
+                WeekNumber = 0,
                 Date = date,
                 DayOfWeek = dayStr,
                 Teachers = teachers,
@@ -126,23 +126,23 @@ public class ScheduleParser
 
     #endregion
 
-    #region Parse Tuần 2-9
+    #region Parse Tuần 1-8
 
-    private List<TeachingSession> ParseWeek2To9(string[] lines)
+    private List<TeachingSession> ParseWeek1To8(string[] lines)
     {
         var sessions = new List<TeachingSession>();
 
         // Parse week start dates
         var weekStartDates = new Dictionary<int, DateTime>
         {
-            [2] = new DateTime(2025, 7, 6),   // 06/07
-            [3] = new DateTime(2025, 7, 13),  // 13/07
-            [4] = new DateTime(2025, 7, 20),  // 20/07
-            [5] = new DateTime(2025, 7, 27),  // 27/07
-            [6] = new DateTime(2025, 8, 3),   // 03/08
-            [7] = new DateTime(2025, 8, 10),  // 10/08
-            [8] = new DateTime(2025, 8, 17),  // 17/08
-            [9] = new DateTime(2025, 8, 24),  // 24/08
+            [1] = new DateTime(2026, 7, 6),   // 06/07
+            [2] = new DateTime(2026, 7, 13),  // 13/07
+            [3] = new DateTime(2026, 7, 20),  // 20/07
+            [4] = new DateTime(2026, 7, 27),  // 27/07
+            [5] = new DateTime(2026, 8, 3),   // 03/08
+            [6] = new DateTime(2026, 8, 10),  // 10/08
+            [7] = new DateTime(2026, 8, 17),  // 17/08
+            [8] = new DateTime(2026, 8, 24),  // 24/08
         };
 
         // Parse template table
@@ -153,7 +153,7 @@ public class ScheduleParser
         {
             var line = lines[i].Trim();
 
-            if (line.Contains("TUẦN 2–9") || line.Contains("TUẦN 2-9"))
+            if (line.Contains("TUẦN 1–8") || line.Contains("TUẦN 1-8"))
             {
                 inWeek2Table = true;
                 continue;
@@ -162,7 +162,7 @@ public class ScheduleParser
             if (inWeek2Table && line.StartsWith("## "))
                 break;
 
-            if (!inWeek2Table || !line.StartsWith("|") || line.Contains("---") || line.Contains("Lớp"))
+            if (!inWeek2Table || !line.StartsWith("|") || line.Contains("---"))
                 continue;
 
             var cols = line.Split('|', StringSplitOptions.None)
@@ -170,7 +170,7 @@ public class ScheduleParser
                 .Where(c => !string.IsNullOrEmpty(c))
                 .ToArray();
 
-            if (cols.Length < 3) continue;
+            if (cols.Length < 3 || cols[0] == "Lớp") continue;
 
             templateRows.Add((
                 cols[0].Trim(),
@@ -245,9 +245,9 @@ public class ScheduleParser
 
     #endregion
 
-    #region Parse Tuần 10
+    #region Parse Tuần 9
 
-    private List<TeachingSession> ParseWeek10(string[] lines)
+    private List<TeachingSession> ParseWeek9(string[] lines)
     {
         var sessions = new List<TeachingSession>();
         bool inWeek10Table = false;
@@ -256,7 +256,7 @@ public class ScheduleParser
         {
             var line = lines[i].Trim();
 
-            if (line == "## TUẦN 10")
+            if (line == "## TUẦN 9")
             {
                 inWeek10Table = true;
                 continue;
@@ -265,7 +265,7 @@ public class ScheduleParser
             if (inWeek10Table && line.StartsWith("## "))
                 break;
 
-            if (!inWeek10Table || !line.StartsWith("|") || line.Contains("---") || line.Contains("Lớp"))
+            if (!inWeek10Table || !line.StartsWith("|") || line.Contains("---"))
                 continue;
 
             var cols = line.Split('|', StringSplitOptions.None)
@@ -273,12 +273,12 @@ public class ScheduleParser
                 .Where(c => !string.IsNullOrEmpty(c))
                 .ToArray();
 
-            if (cols.Length < 4) continue;
+            if (cols.Length < 4 || cols[0] == "Lớp") continue;
 
             sessions.Add(new TeachingSession
             {
                 ClassName = cols[0].Trim(),
-                WeekNumber = 10,
+                WeekNumber = 9,
                 Date = ParseDate(cols[1].Trim()),
                 DayOfWeek = cols[2].Trim(),
                 Teachers = ParseTeachers(cols[3].Trim()),

@@ -221,6 +221,7 @@ public class ClassroomAutomationService
     /// Tạo tài liệu trống cho GV của 1 lớp.
     /// - Tiêu đề: "Tuần X - Buổi Y - Ngày DD/MM - [Cô/Thầy] Z"
     /// - Đặt vào "Thư mục [Cô/Thầy] Z"
+    /// - Chỉ giao cho acc phụ "Kỹ Thuật" → HS không thấy topic GV
     /// </summary>
     public async Task RunProcess3_CreateMaterialsForClass(
         string className, Dictionary<string, string> topicMap)
@@ -233,6 +234,16 @@ public class ClassroomAutomationService
         }
 
         Console.WriteLine($"\n  📄 Tạo tài liệu GV cho lớp: {className}");
+
+        // Tìm Student ID của acc phụ "Kỹ Thuật"
+        var techStudentId = await FindStudentIdByNameAsync(courseId, "Kỹ Thuật");
+        if (techStudentId == null)
+        {
+            Console.WriteLine($"  ❌ Không tìm thấy học sinh 'Kỹ Thuật' trong lớp {className}!");
+            Console.WriteLine($"     → Hãy thêm acc phụ 'Kỹ Thuật' vào lớp trước.");
+            return;
+        }
+        Console.WriteLine($"  ✓ Tìm thấy acc 'Kỹ Thuật' (ID: {techStudentId})");
 
         var classSessions = _sessions
             .Where(s => s.ClassName == className)
@@ -265,13 +276,19 @@ public class ClassroomAutomationService
                         Title = title,
                         Description = $"Tài liệu giảng dạy: {title}\n\n(File sẽ được upload sau)",
                         TopicId = teacherTopicId,
-                        State = "PUBLISHED"
+                        State = "PUBLISHED",
+                        // Chỉ giao cho acc "Kỹ Thuật" → HS khác không thấy
+                        AssigneeMode = "INDIVIDUAL_STUDENTS",
+                        IndividualStudentsOptions = new IndividualStudentsOptions
+                        {
+                            StudentIds = new List<string> { techStudentId }
+                        }
                     };
 
                     var request = _classroom.Courses.CourseWorkMaterials.Create(material, courseId);
                     var result = await request.ExecuteAsync();
 
-                    Console.WriteLine($"    ✓ {title} → {topicName}");
+                    Console.WriteLine($"    ✓ {title} → {topicName} (chỉ giao cho Kỹ Thuật)");
                     success++;
 
                     await Task.Delay(300);
@@ -322,30 +339,57 @@ public class ClassroomAutomationService
     }
 
     /// <summary>
-    /// Xóa tất cả CourseWork (Assignments) trong 1 lớp
+    /// Xóa tất cả CourseWork (Assignments) trong 1 lớp.
+    /// Lấy cả PUBLISHED và DRAFT vì bài tập được tạo dạng DRAFT (lên lịch).
     /// </summary>
     private async Task DeleteAllCourseWorkAsync(string courseId)
     {
         try
         {
-            var listRequest = _classroom.Courses.CourseWork.List(courseId);
-            listRequest.PageSize = 100;
-            var response = await listRequest.ExecuteAsync();
+            var allCourseWork = new List<CourseWork>();
 
-            if (response.CourseWork == null || response.CourseWork.Count == 0)
+            // Lấy cả PUBLISHED và DRAFT (mặc định API chỉ trả PUBLISHED)
+            var states = new[]
+            {
+                CoursesResource.CourseWorkResource.ListRequest.CourseWorkStatesEnum.PUBLISHED,
+                CoursesResource.CourseWorkResource.ListRequest.CourseWorkStatesEnum.DRAFT
+            };
+
+            foreach (var state in states)
+            {
+                string? pageToken = null;
+                do
+                {
+                    var listRequest = _classroom.Courses.CourseWork.List(courseId);
+                    listRequest.PageSize = 100;
+                    listRequest.CourseWorkStates = state;
+                    if (pageToken != null) listRequest.PageToken = pageToken;
+
+                    var response = await listRequest.ExecuteAsync();
+                    if (response.CourseWork != null)
+                        allCourseWork.AddRange(response.CourseWork);
+
+                    pageToken = response.NextPageToken;
+                } while (!string.IsNullOrEmpty(pageToken));
+            }
+
+            if (allCourseWork.Count == 0)
             {
                 Console.WriteLine("    (Không có bài tập nào)");
                 return;
             }
 
+            Console.WriteLine($"    Tìm thấy {allCourseWork.Count} bài tập (PUBLISHED + DRAFT)");
+
             int count = 0;
-            foreach (var work in response.CourseWork)
+            foreach (var work in allCourseWork)
             {
+
                 try
                 {
                     var deleteRequest = _classroom.Courses.CourseWork.Delete(courseId, work.Id);
                     await deleteRequest.ExecuteAsync();
-                    Console.WriteLine($"    🗑️ Đã xóa: {work.Title}");
+                    Console.WriteLine($"    🗑️ Đã xóa: {work.Title} [{work.State}]");
                     count++;
                     await Task.Delay(200);
                 }
@@ -354,7 +398,7 @@ public class ClassroomAutomationService
                     Console.WriteLine($"    ✗ Không xóa được '{work.Title}': {ex.Message}");
                 }
             }
-            Console.WriteLine($"    → Đã xóa {count}/{response.CourseWork.Count} bài tập");
+            Console.WriteLine($"    → Đã xóa {count}/{allCourseWork.Count} bài tập");
         }
         catch (Exception ex)
         {
@@ -382,6 +426,7 @@ public class ClassroomAutomationService
             int count = 0;
             foreach (var material in response.CourseWorkMaterial)
             {
+
                 try
                 {
                     var deleteRequest = _classroom.Courses.CourseWorkMaterials.Delete(courseId, material.Id);
@@ -445,6 +490,52 @@ public class ClassroomAutomationService
         {
             Console.WriteLine($"    ✗ Lỗi xóa topics: {ex.Message}");
         }
+    }
+
+    // ══════════════════════════════════════════════════════════════
+    //  TÌM STUDENT ID THEO TÊN
+    // ══════════════════════════════════════════════════════════════
+
+    /// <summary>
+    /// Tìm Student ID trong lớp dựa trên tên hiển thị.
+    /// Tìm kiếm theo keyword trong fullName (case-insensitive).
+    /// </summary>
+    private async Task<string?> FindStudentIdByNameAsync(string courseId, string nameKeyword)
+    {
+        try
+        {
+            var request = _classroom.Courses.Students.List(courseId);
+            request.PageSize = 100;
+            var response = await request.ExecuteAsync();
+
+            if (response.Students == null || response.Students.Count == 0)
+            {
+                Console.WriteLine($"    ⚠ Lớp không có học sinh nào!");
+                return null;
+            }
+
+            foreach (var student in response.Students)
+            {
+                var fullName = student.Profile?.Name?.FullName ?? "";
+                if (fullName.Contains(nameKeyword, StringComparison.OrdinalIgnoreCase))
+                {
+                    return student.UserId;
+                }
+            }
+
+            // Log danh sách HS để debug
+            Console.WriteLine($"    ℹ Danh sách HS trong lớp:");
+            foreach (var student in response.Students)
+            {
+                Console.WriteLine($"      - {student.Profile?.Name?.FullName} (ID: {student.UserId})");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"    ✗ Lỗi lấy danh sách HS: {ex.Message}");
+        }
+
+        return null;
     }
 
     // ══════════════════════════════════════════════════════════════
